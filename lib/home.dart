@@ -5,8 +5,9 @@ class Ingredient {
   String name;
   double qty;
   String unit;
+  String meal;
 
-  Ingredient({required this.name, required this.qty, required this.unit});
+  Ingredient({required this.name, required this.qty, required this.unit, required this.meal});
 
   double getScaledQty(double factor) {
     return qty * factor;
@@ -30,24 +31,29 @@ class _HomeState extends State<Home> {
   List<Ingredient> ingredients = [];
   String selectedUnit = '';
   String errorMsg = '';
-
+  bool _isBreakfast = false;
+  bool _isLunch= false;
+  bool _isDinner= false;
   List<String> units = ['', 'g', 'kg', 'ml', 'L', 'C', 'tsp', 'tbsp', 'oz', 'lb'];
 
   double calculateScale() {
     var orig = double.tryParse(originalServings.text);
     var target = double.tryParse(targetServings.text);
-    
-    if (orig == null || target == null || orig == 0) {
-      return 1.0;
-    }
-    
+    if (orig == null || target == null || orig == 0) {return 1.0;}
     return target / orig;
   }
+
+  String _getSelectedMeal(){
+    if (_isBreakfast) return 'Breakfast';
+    if (_isLunch) return 'Lunch';
+    if (_isDinner) return 'Dinner';
+    return '';
+    }
 
   void addIngredient() {
     var qty = double.tryParse(qtyController.text);
     var name = nameController.text.trim();
-
+    final meal= _getSelectedMeal();
     if (qty == null || name.isEmpty) {
       setState(() {
         errorMsg = 'Please fill quantity and ingredient name';
@@ -59,13 +65,17 @@ class _HomeState extends State<Home> {
       ingredients.add(Ingredient(
         name: name, 
         qty: qty, 
-        unit: selectedUnit
+        unit: selectedUnit,
+        meal: meal,
       ));
       
       qtyController.clear();
       nameController.clear();
       selectedUnit = '';
       errorMsg = '';
+      _isBreakfast = false;
+      _isLunch = false;
+      _isDinner = false;
     });
   }
 
@@ -78,6 +88,9 @@ class _HomeState extends State<Home> {
       nameController.clear();
       selectedUnit = '';
       errorMsg = '';
+      _isBreakfast = false;
+      _isLunch = false;
+      _isDinner = false;
     });
   }
 
@@ -180,6 +193,67 @@ class _HomeState extends State<Home> {
             ),
 
             SizedBox(height: 8),
+            
+                        Row(
+              children: [
+                Expanded(
+                  child: CheckboxListTile(
+                    title: const Text('Breakfast'),
+                    value: _isBreakfast,
+                    onChanged: (val) {
+                      setState(() {
+                        _isBreakfast = val ?? false;
+                        if (_isBreakfast) {
+                          _isLunch = false;
+                          _isDinner = false;
+                        }
+                      });
+                    },
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
+                    controlAffinity: ListTileControlAffinity.leading,
+                  ),
+                ),
+                Expanded(
+                  child: CheckboxListTile(
+                    title: const Text('Lunch'),
+                    value: _isLunch,
+                    onChanged: (val) {
+                      setState(() {
+                        _isLunch = val ?? false;
+                        if (_isLunch) {
+                          _isBreakfast = false;
+                          _isDinner = false;
+                        }
+                      });
+                    },
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
+                    controlAffinity: ListTileControlAffinity.leading,
+                  ),
+                ),
+                Expanded(
+                  child: CheckboxListTile(
+                    title: const Text('Dinner'),
+                    value: _isDinner,
+                    onChanged: (val) {
+                      setState(() {
+                        _isDinner = val ?? false;
+                        if (_isDinner) {
+                          _isBreakfast = false;
+                          _isLunch = false;
+                        }
+                      });
+                    },
+                    dense: true,
+                    contentPadding: EdgeInsets.zero,
+                    controlAffinity: ListTileControlAffinity.leading,
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 8),
 
             // buttons
             Row(
@@ -192,7 +266,7 @@ class _HomeState extends State<Home> {
                 ),
                 SizedBox(width: 8),
                 Expanded(
-                  child: OutlinedButton(
+                  child: ElevatedButton(
                     onPressed: clearEverything,
                     child: Text('Clear All'),
                   ),
@@ -227,15 +301,8 @@ class _HomeState extends State<Home> {
                         return Card(
                           child: ListTile(
                             title: Text('${ing.qty}$unitDisplay ${ing.name}'),
-                            subtitle: Text('Scaled: ${scaledAmount.toStringAsFixed(2)}$unitDisplay'),
-                            trailing: IconButton(
-                              icon: Icon(Icons.delete),
-                              onPressed: () {
-                                setState(() {
-                                  ingredients.removeAt(index);
-                                });
-                              },
-                            ),
+                            subtitle: Text('Meal: ${ing.meal}, ''Scaled: ${scaledAmount.toStringAsFixed(2)}$unitDisplay'),
+                            
                           ),
                         );
                       },
